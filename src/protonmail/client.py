@@ -250,7 +250,7 @@ class ProtonMail:
 
         return attachments
 
-    def send_message(self, message: Message, is_html: bool = True) -> Message:
+    def send_message(self, message: Message, is_html: bool = True, delivery_time: int = time.time()) -> Message:
         """
         Send the message.
 
@@ -258,6 +258,7 @@ class ProtonMail:
         :type message: ``Message``
         :param is_html: message.body is html or plain text, default: True
         :type is_html: ``bool``
+        :param delivery_time: message delivery time, default: now
         :returns: :py:obj:`Message`
         """
         recipients_info = []
@@ -270,7 +271,12 @@ class ProtonMail:
             })
         draft = self.create_draft(message, decrypt_body=False)
         uploaded_attachments = self._upload_attachments(message.attachments, draft.id)
-        multipart = self._multipart_encrypt(message, uploaded_attachments, recipients_info, is_html)
+
+        extra_fields = {}
+        if delivery_time:
+            extra_fields['DeliveryTime'] = delivery_time
+
+        multipart = self._multipart_encrypt(message, uploaded_attachments, recipients_info, is_html, extra_fields)
 
         headers = {
             "Content-Type": multipart.content_type
@@ -1109,7 +1115,7 @@ class ProtonMail:
 
         return encrypted_attachment, signature
 
-    def _multipart_encrypt(self, message: Message, uploaded_attachments: list[Attachment], recipients_info: list[dict], is_html: bool) -> MultipartEncoder:
+    def _multipart_encrypt(self, message: Message, uploaded_attachments: list[Attachment], recipients_info: list[dict], is_html: bool, extra_fields: dict) -> MultipartEncoder:
         session_key = None
         recipients_type = set(recipient['type'] for recipient in recipients_info)
         package_types = {
@@ -1118,6 +1124,7 @@ class ProtonMail:
         }
         fields = {
             "DelaySeconds": (None, '10'),
+            **extra_fields,
         }
 
         for recipient_type in recipients_type:
