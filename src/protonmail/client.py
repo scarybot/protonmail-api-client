@@ -121,6 +121,7 @@ class ProtonMail:
         """
         _id = message_or_id.id if isinstance(message_or_id, Message) else message_or_id
         response = self._get('mail', f'mail/v4/messages/{_id}')
+        print(response.json())
         message = response.json()['Message']
         message = self._convert_dict_to_message(message)
 
