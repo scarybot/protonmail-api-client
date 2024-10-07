@@ -35,7 +35,6 @@ class PGP:
             passphrase = pair.passphrase
 
         pgp_private_key, _ = self.key(private_key)
-        print('private_key:', pgp_private_key)
         with pgp_private_key.unlock(passphrase) as key:
             message = key.decrypt(encrypted_message).message
             print('decrypted message:', message)
