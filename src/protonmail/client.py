@@ -275,7 +275,7 @@ class ProtonMail:
 
         extra_fields = {}
         if delivery_time:
-            extra_fields['DeliveryTime'] = delivery_time
+            extra_fields['DeliveryTime'] = str(delivery_time)
 
         multipart = self._multipart_encrypt(message, uploaded_attachments, recipients_info, is_html, extra_fields)
 
