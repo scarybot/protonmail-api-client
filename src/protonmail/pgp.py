@@ -35,8 +35,10 @@ class PGP:
             passphrase = pair.passphrase
 
         pgp_private_key, _ = self.key(private_key)
+        print('private_key:', pgp_private_key)
         with pgp_private_key.unlock(passphrase) as key:
             message = key.decrypt(encrypted_message).message
+            print('decrypted message:', message)
 
         # Some messages are encoded in latin_1, so we will recode them in utf-8
         try:
@@ -44,7 +46,7 @@ class PGP:
                 message = message.decode('utf-8')
             message = message.encode('latin_1').decode('utf-8')
         except (UnicodeEncodeError, UnicodeDecodeError):
-            pass
+            print('Error decoding message')
 
         return message
 
