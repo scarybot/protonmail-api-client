@@ -1125,7 +1125,6 @@ class ProtonMail:
         }
         fields = {
             "DelaySeconds": (None, '10'),
-            **extra_fields,
         }
 
         for recipient_type in recipients_type:
