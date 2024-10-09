@@ -37,7 +37,6 @@ class PGP:
         pgp_private_key, _ = self.key(private_key)
         with pgp_private_key.unlock(passphrase) as key:
             message = key.decrypt(encrypted_message).message
-            print('decrypted message:', message)
 
         # Some messages are encoded in latin_1, so we will recode them in utf-8
         try:

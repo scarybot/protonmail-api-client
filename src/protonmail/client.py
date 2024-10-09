@@ -126,7 +126,6 @@ class ProtonMail:
 
         message.body = self.pgp.decrypt(message.body)
         self._multipart_decrypt(message)
-        print(response.json())
 
         if mark_as_read:
             self.mark_messages_as_read([message])
@@ -1125,6 +1124,7 @@ class ProtonMail:
         }
         fields = {
             "DelaySeconds": (None, '10'),
+            **extra_fields,
         }
 
         for recipient_type in recipients_type:
