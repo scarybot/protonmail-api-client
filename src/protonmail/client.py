@@ -180,8 +180,11 @@ class ProtonMail:
         response = self._get('mail', f'mail/v4/conversations/{_id}')
         messages = response.json()['Messages']
         messages = [self._convert_dict_to_message(message) for message in messages]
-        messages[-1].body = self.pgp.decrypt(messages[-1].body)
-        self._multipart_decrypt(messages[-1])
+        try:
+            messages[-1].body = self.pgp.decrypt(messages[-1].body)
+            self._multipart_decrypt(messages[-1])
+        except ValueError:
+            pass
 
         return messages
 
