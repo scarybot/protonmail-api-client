@@ -29,10 +29,10 @@ from .exceptions import SendMessageError, InvalidTwoFactorCode, LoadSessionError
 from .models import Attachment, Message, UserMail, Conversation, PgpPairKeys, Label
 from .constants import DEFAULT_HEADERS, urls_api
 from .utils.pysrp import User
-from .logger import Logger
 from .pgp import PGP
 from .utils.utils import bcrypt_b64_encode, delete_duplicates_cookies_and_reset_domain
-
+import logging
+from rich.logging import RichHandler
 
 class ProtonMail:
     """
@@ -47,7 +47,9 @@ class ProtonMail:
         :param logging_func: logging function. default print.
         :type logging_func: ``callable``
         """
-        self.logger = Logger(logging_level, logging_func)
+
+        logging.basicConfig(level="DEBUG", handlers=[RichHandler()])
+        self.logger = logging.getLogger("rich_logger")
         self.proxy = proxy
         self.pgp = PGP()
         self.user = None

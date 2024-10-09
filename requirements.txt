@@ -6,3 +6,4 @@ requests
 requests-toolbelt
 typing_extensions
 tqdm
+rich
