@@ -89,7 +89,7 @@ class ProtonMail:
         }).json()
 
         if self._login_process(auth):
-            self.logger.info("login success", "green")
+            self.logger.info("login success")
         else:
             self.logger.error("login failure")
 
@@ -949,7 +949,7 @@ class ProtonMail:
         response = self._post('mail', 'core/v4/auth/cookies', json=json_data)
         if response.status_code != 200:
             raise Exception(f"Can't get refresh token, status: {response.status_code}, json: {response.json()}")
-        self.logger.info("got cookies", "green")
+        self.logger.info("got cookies")
 
     def _parse_info_after_login(self, password: str) -> None:
         user_info = self.__get_users()['User']
@@ -967,7 +967,7 @@ class ProtonMail:
             private_key=user_pair_key['PrivateKey'],
             passphrase=user_private_key_password,
         ))
-        self.logger.info("got user keys", "green")
+        self.logger.info("got user keys")
 
         address = self.__addresses()['Addresses'][0]
 
@@ -987,7 +987,7 @@ class ProtonMail:
                 private_key=address_key['PrivateKey'],
                 passphrase=address_passphrase,
             ))
-        self.logger.info("got email keys", "green")
+        self.logger.info("got email keys")
 
     def __check_email_address(self, mail_address: Union[UserMail, str]) -> dict:
         """
