@@ -279,7 +279,7 @@ class ProtonMail:
 
         extra_fields = {}
         if delivery_time:
-            extra_fields['DeliveryTime'] = (None, delivery_time)
+            extra_fields['DeliveryTime'] = (None, str(delivery_time))
 
         if parent_id:
             extra_fields['ParentID'] = (None, str(parent_id))
