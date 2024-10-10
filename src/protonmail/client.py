@@ -282,7 +282,8 @@ class ProtonMail:
             extra_fields['DeliveryTime'] = (None, delivery_time)
 
         if parent_id:
-            extra_fields['ParentID'] = (None, parent_id)
+            extra_fields['ParentID'] = (None, str(parent_id))
+            extra_fields['Action'] = (None, str(0)) # Reply
 
         multipart = self._multipart_encrypt(message, uploaded_attachments, recipients_info, is_html, extra_fields)
 
