@@ -255,7 +255,7 @@ class ProtonMail:
 
         return attachments
 
-    def send_message(self, message: Message, is_html: bool = True, delivery_time: int = time.time()) -> Message:
+    def send_message(self, message: Message, is_html: bool = True, delivery_time: int = time.time(), parent_id: str = None) -> Message:
         """
         Send the message.
 
@@ -280,6 +280,9 @@ class ProtonMail:
         extra_fields = {}
         if delivery_time:
             extra_fields['DeliveryTime'] = (None, delivery_time)
+
+        if message.parent_id:
+            extra_fields['ParentID'] = (None, parent_id)
 
         multipart = self._multipart_encrypt(message, uploaded_attachments, recipients_info, is_html, extra_fields)
 
