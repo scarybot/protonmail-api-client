@@ -255,7 +255,7 @@ class ProtonMail:
 
         return attachments
 
-    def send_message(self, message: Message, is_html: bool = True, delivery_time: int = time.time(), parent_id: str = None) -> Message:
+    def send_message(self, message: Message, is_html: bool = True, delivery_time: int = int(time.time()), parent_id: str = None) -> Message:
         """
         Send the message.
 
@@ -307,7 +307,8 @@ class ProtonMail:
         sent_message = self._convert_dict_to_message(sent_message_dict)
         sent_message.body = self.pgp.decrypt(sent_message.body)
         self._multipart_decrypt(sent_message)
-
+        self.logger.info("Message sent successfully")
+        self.logger.debug(sent_message)
         return sent_message
 
     def create_draft(self, message: Message, decrypt_body: Optional[bool] = True) -> Message:
