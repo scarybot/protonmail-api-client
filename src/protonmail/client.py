@@ -256,7 +256,7 @@ class ProtonMail:
 
         return attachments
 
-    def send_message(self, message: Message, is_html: bool = True, delivery_time: int = int(time.time()), parent_id: str = None) -> Message:
+    def send_message(self, message: Message, is_html: bool = True, delivery_time: int = int(time.time()), parent_id: str = None, delay_time: int = 10) -> Message:
         """
         Send the message.
 
@@ -278,7 +278,10 @@ class ProtonMail:
         draft = self.create_draft(message, decrypt_body=False)
         uploaded_attachments = self._upload_attachments(message.attachments, draft.id)
 
-        extra_fields = {}
+        extra_fields = {
+            'DelayTime': (None, str(delay_time)),
+        }
+
         if delivery_time:
             extra_fields['DeliveryTime'] = (None, str(delivery_time))
 
@@ -1134,7 +1137,7 @@ class ProtonMail:
             32: 'multipart/mixed',  # send to other mails
         }
         fields = {
-            "DelaySeconds": (None, '10'),
+            "DelaySeconds": (None, str(extra_fields.get('delay_seconds', 10))),
             **extra_fields,
         }
 
