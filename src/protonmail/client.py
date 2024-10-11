@@ -33,6 +33,7 @@ from .pgp import PGP
 from .utils.utils import bcrypt_b64_encode, delete_duplicates_cookies_and_reset_domain
 import logging
 from rich.logging import RichHandler
+import pprint
 
 class ProtonMail:
     """
@@ -308,7 +309,7 @@ class ProtonMail:
         sent_message.body = self.pgp.decrypt(sent_message.body)
         self._multipart_decrypt(sent_message)
         self.logger.info("Message sent successfully")
-        self.logger.debug(sent_message)
+        self.logger.debug(pprint.pformat(sent_message))
         return sent_message
 
     def create_draft(self, message: Message, decrypt_body: Optional[bool] = True) -> Message:
