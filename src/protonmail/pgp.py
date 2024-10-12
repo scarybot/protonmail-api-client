@@ -44,7 +44,7 @@ class PGP:
                 message = message.decode('utf-8')
             message = message.encode('latin_1').decode('utf-8')
         except (UnicodeEncodeError, UnicodeDecodeError):
-            print('Error decoding message')
+            self.logger.error('Error decoding message; proceeding with raw text')
 
         return message
 

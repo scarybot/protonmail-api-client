@@ -256,7 +256,7 @@ class ProtonMail:
 
         return attachments
 
-    def send_message(self, message: Message, is_html: bool = True, delivery_time: int = int(time.time()), parent_id: str = None, delay_seconds: int = 10) -> Message:
+    def send_message(self, message: Message, is_html: bool = True, delivery_time: int = int(time.time()), parent_id: str = None, delay_seconds: int = 10, reply_type: int = None) -> Message:
         """
         Send the message.
 
@@ -275,7 +275,7 @@ class ProtonMail:
                 'type': 1 if recipient_info['RecipientType'] == 1 else 32,
                 'public_key': recipient_info['Keys'][0]['PublicKey'] if recipient_info['Keys'] else None,
             })
-        draft = self.create_draft(message, decrypt_body=False)
+        draft = self.create_draft(message, decrypt_body=False, parent_id=parent_id, reply_type=reply_type)
         uploaded_attachments = self._upload_attachments(message.attachments, draft.id)
 
         extra_fields = {
@@ -315,7 +315,7 @@ class ProtonMail:
         self.logger.debug(pprint.pformat(sent_message))
         return sent_message
 
-    def create_draft(self, message: Message, decrypt_body: Optional[bool] = True) -> Message:
+    def create_draft(self, message: Message, decrypt_body: Optional[bool] = True, parent_id: str = None, reply_type: int = None) -> Message:
         """Create the draft."""
         pgp_body = self.pgp.encrypt(message.body)
 
@@ -337,6 +337,12 @@ class ProtonMail:
                 'Body': pgp_body,
             },
         }
+
+        if parent_id:
+            data['ParentID'] = parent_id
+        if reply_type:
+            data['Action'] = reply_type
+
         for recipient in message.recipients:
             data['Message']['ToList'].append(
                 {
