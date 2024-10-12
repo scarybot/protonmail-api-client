@@ -350,6 +350,8 @@ class ProtonMail:
                 }
             )
 
+        pprint.pprint(data)
+
         json_response = self._post(
             'mail',
             'mail/v4/messages',
