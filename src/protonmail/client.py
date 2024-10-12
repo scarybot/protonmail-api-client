@@ -350,18 +350,13 @@ class ProtonMail:
                 }
             )
 
-        pprint.pprint(data)
-
         json_response = self._post(
             'mail',
             'mail/v4/messages',
             json=data
         ).json()
 
-        pprint.pprint(json_response)
-
         response = json_response['Message']
-
         draft = self._convert_dict_to_message(response)
 
         if decrypt_body:
