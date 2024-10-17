@@ -400,6 +400,20 @@ class ProtonMail:
         }
         self._put('mail', 'mail/v4/messages/unread', json=data)
 
+    def mark_conversations_as_read(self, conversations_or_ids: list[Union[Conversation, str]]) -> None:
+        """
+        Mark as read conversation.
+
+        :param conversations_or_ids: list of conversations or conversation ids.
+        :type conversations_or_ids: :py:obj:`Conversation`
+        """
+        ids = [i.id if isinstance(i, Conversation) else i for i in conversations_or_ids]
+        data = {
+            'IDs': ids,
+            'LabelID': "0"
+        }
+        self._put('mail', 'mail/v4/conversations/unread', json=data)
+
     def wait_for_new_message(
             self,
             *args,
