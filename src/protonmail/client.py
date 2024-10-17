@@ -395,8 +395,7 @@ class ProtonMail:
         """
         ids = [i.id if isinstance(i, Message) else i for i in messages_or_ids]
         data = {
-            'IDs': ids,
-            'LabelID': "0"
+            'IDs': ids
         }
         self._put('mail', 'mail/v4/messages/unread', json=data)
 
