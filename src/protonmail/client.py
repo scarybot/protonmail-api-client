@@ -399,7 +399,7 @@ class ProtonMail:
         }
         self._put('mail', 'mail/v4/messages/unread', json=data)
 
-    def mark_conversations_as_read(self, conversations_or_ids: list[Union[Conversation, str]]) -> None:
+    def mark_conversations_as_unread(self, conversations_or_ids: list[Union[Conversation, str]]) -> None:
         """
         Mark as read conversation.
 
