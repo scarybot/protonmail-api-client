@@ -59,11 +59,19 @@ class ProtonMail:
         self.account_id = ''
         self.account_email = ''
         self.account_name = ''
+        self.all_addresses = []  # Store all addresses after login
 
         self.session = Session()
         self.session.proxies = {'http': self.proxy, 'https': self.proxy} if self.proxy else dict()
         self.session.headers.update(DEFAULT_HEADERS)
 
+    def get_loaded_addresses(self) -> list:
+        """
+        Get list of all addresses (including aliases) that have keys loaded.
+        Returns list of email addresses.
+        """
+        return [addr['Email'] for addr in self.all_addresses]
+    
     def login(self, username: str, password: str, getter_2fa_code: callable = lambda: input("enter 2FA code:")) -> None:
         """
         Authorization in ProtonMail.
@@ -1014,25 +1022,33 @@ class ProtonMail:
         ))
         self.logger.info("got user keys")
 
-        address = self.__addresses()['Addresses'][0]
+        addresses_response = self.__addresses()
+        all_addresses = addresses_response['Addresses']
+        self.all_addresses = all_addresses
+        
+        primary_address = all_addresses[0]
+        self.account_id = primary_address['ID']
+        self.account_email = primary_address['Email']
+        self.account_name = primary_address['DisplayName']
 
-        self.account_id = address['ID']
-        self.account_email = address['Email']
-        self.account_name = address['DisplayName']
+        for address in all_addresses:
+            for address_key in address['Keys']:
+                address_passphrase = self.pgp.decrypt(address_key['Token'], user_pair_key['PrivateKey'], user_private_key_password)
 
-        for address_key in address['Keys']:
-            address_passphrase = self.pgp.decrypt(address_key['Token'], user_pair_key['PrivateKey'], user_private_key_password)
-
-            self.pgp.pairs_keys.append(PgpPairKeys(
-                is_user_key=False,
-                is_primary=bool(address_key['Primary']),
-                fingerprint_public=address_key['Fingerprints'][0],
-                fingerprint_private=address_key['Fingerprints'][1],
-                public_key=address_key['PublicKey'],
-                private_key=address_key['PrivateKey'],
-                passphrase=address_passphrase,
-            ))
-        self.logger.info("got email keys")
+                is_primary = bool(address_key['Primary']) and (address == primary_address)
+                
+                self.pgp.pairs_keys.append(PgpPairKeys(
+                    is_user_key=False,
+                    is_primary=is_primary,
+                    fingerprint_public=address_key['Fingerprints'][0],
+                    fingerprint_private=address_key['Fingerprints'][1],
+                    public_key=address_key['PublicKey'],
+                    private_key=address_key['PrivateKey'],
+                    passphrase=address_passphrase,
+                ))
+                self.logger.debug(f"Added key for {address['Email']}: fingerprint={address_key['Fingerprints'][1][:8]}...")
+        
+        self.logger.info(f"Got email keys for {len(all_addresses)} addresses")
 
     def __check_email_address(self, mail_address: Union[UserMail, str]) -> dict:
         """
