@@ -327,6 +327,21 @@ class ProtonMail:
         """Create the draft."""
         pgp_body = self.pgp.encrypt(message.body)
 
+        # Determine sender address and ID
+        sender_name = self.account_name
+        sender_email = self.account_email
+        address_id = self.account_id
+        
+        # If message has a specific sender, try to match it with available addresses
+        if message.sender and hasattr(self, 'all_addresses'):
+            for address in self.all_addresses:
+                if address['Email'].lower() == message.sender.address.lower():
+                    address_id = address['ID']
+                    sender_email = address['Email']
+                    sender_name = message.sender.name or address['DisplayName']
+                    self.logger.info(f"Using alias address: {sender_email} (ID: {address_id})")
+                    break
+
         data = {
             'Message': {
                 'ToList': [],
@@ -337,10 +352,10 @@ class ProtonMail:
                 'MIMEType': 'text/html',
                 'RightToLeft': 0,
                 'Sender': {
-                    'Name': self.account_name,
-                    'Address': self.account_email,
+                    'Name': sender_name,
+                    'Address': sender_email,
                 },
-                'AddressID': self.account_id,
+                'AddressID': address_id,
                 'Unread': 0,
                 'Body': pgp_body,
             },
