@@ -283,8 +283,25 @@ class ProtonMail:
                 'type': 1 if recipient_info['RecipientType'] == 1 else 32,
                 'public_key': recipient_info['Keys'][0]['PublicKey'] if recipient_info['Keys'] else None,
             })
+        # Get sender's public key if using an alias
+        sender_public_key = None
+        if message.sender and hasattr(self, 'all_addresses'):
+            for address in self.all_addresses:
+                if address['Email'].lower() == message.sender.address.lower():
+                    # Get the public key for this address
+                    if address.get('Keys') and len(address['Keys']) > 0:
+                        # Use the primary key for this address
+                        for key in address['Keys']:
+                            if key.get('Primary'):
+                                sender_public_key = key['PublicKey']
+                                break
+                        if not sender_public_key and address['Keys']:
+                            # Fallback to first key if no primary
+                            sender_public_key = address['Keys'][0]['PublicKey']
+                    break
+        
         draft = self.create_draft(message, decrypt_body=False, parent_id=parent_id)
-        uploaded_attachments = self._upload_attachments(message.attachments, draft.id)
+        uploaded_attachments = self._upload_attachments(message.attachments, draft.id, sender_public_key=sender_public_key)
 
         extra_fields = {
             'DelaySeconds': (None, str(delay_seconds)),
@@ -297,7 +314,7 @@ class ProtonMail:
             extra_fields['ParentID'] = (None, str(parent_id))
             extra_fields['Action'] = (None, str(0)) # Reply
 
-        multipart = self._multipart_encrypt(message, uploaded_attachments, recipients_info, is_html, extra_fields)
+        multipart = self._multipart_encrypt(message, uploaded_attachments, recipients_info, is_html, extra_fields, sender_public_key=sender_public_key)
 
         headers = {
             "Content-Type": multipart.content_type
@@ -325,12 +342,11 @@ class ProtonMail:
 
     def create_draft(self, message: Message, decrypt_body: Optional[bool] = True, parent_id: str = None) -> Message:
         """Create the draft."""
-        pgp_body = self.pgp.encrypt(message.body)
-
-        # Determine sender address and ID
+        # Determine sender address and ID first, before encryption
         sender_name = self.account_name
         sender_email = self.account_email
         address_id = self.account_id
+        sender_public_key = None
         
         # If message has a specific sender, try to match it with available addresses
         if message.sender and hasattr(self, 'all_addresses'):
@@ -339,8 +355,24 @@ class ProtonMail:
                     address_id = address['ID']
                     sender_email = address['Email']
                     sender_name = message.sender.name or address['DisplayName']
+                    # Get the public key for this address
+                    if address.get('Keys') and len(address['Keys']) > 0:
+                        # Use the primary key for this address
+                        for key in address['Keys']:
+                            if key.get('Primary'):
+                                sender_public_key = key['PublicKey']
+                                break
+                        if not sender_public_key and address['Keys']:
+                            # Fallback to first key if no primary
+                            sender_public_key = address['Keys'][0]['PublicKey']
                     self.logger.info(f"Using alias address: {sender_email} (ID: {address_id})")
                     break
+        
+        # Encrypt with the appropriate key
+        if sender_public_key:
+            pgp_body = self.pgp.encrypt(message.body, public_key=sender_public_key)
+        else:
+            pgp_body = self.pgp.encrypt(message.body)
 
         data = {
             'Message': {
@@ -1152,9 +1184,9 @@ class ProtonMail:
         content = await response.read()
         return image, content
 
-    def _upload_attachments(self, attachments: list[Attachment], draft_id: str) -> list[Attachment]:
+    def _upload_attachments(self, attachments: list[Attachment], draft_id: str, sender_public_key: str = None) -> list[Attachment]:
         """upload attachments."""
-        encrypted_attachments_with_signature = [self._encrypt_attachment(attachment) for attachment in attachments]
+        encrypted_attachments_with_signature = [self._encrypt_attachment(attachment, sender_public_key=sender_public_key) for attachment in attachments]
 
         uploaded_attachments = list()
         for attachment, signature in encrypted_attachments_with_signature:
@@ -1181,10 +1213,10 @@ class ProtonMail:
 
         return uploaded_attachments
 
-    def _encrypt_attachment(self, attachment: Attachment) -> tuple[Attachment, bytes]:
+    def _encrypt_attachment(self, attachment: Attachment, sender_public_key: str = None) -> tuple[Attachment, bytes]:
         """Encrypt an attachment."""
-        encrypted_data, session_key, signature = self.pgp.encrypt_with_session_key(attachment.content)
-        key_packet = b64encode(self.pgp.encrypt_session_key(session_key)).decode()
+        encrypted_data, session_key, signature = self.pgp.encrypt_with_session_key(attachment.content, sender_public_key=sender_public_key)
+        key_packet = b64encode(self.pgp.encrypt_session_key(session_key, sender_public_key=sender_public_key)).decode()
 
         encrypted_attachment = Attachment(**attachment.to_dict())
         encrypted_attachment.content = encrypted_data
@@ -1193,7 +1225,7 @@ class ProtonMail:
 
         return encrypted_attachment, signature
 
-    def _multipart_encrypt(self, message: Message, uploaded_attachments: list[Attachment], recipients_info: list[dict], is_html: bool, extra_fields: dict) -> MultipartEncoder:
+    def _multipart_encrypt(self, message: Message, uploaded_attachments: list[Attachment], recipients_info: list[dict], is_html: bool, extra_fields: dict, sender_public_key: str = None) -> MultipartEncoder:
         session_key = None
         recipients_type = set(recipient['type'] for recipient in recipients_info)
         package_types = {
@@ -1213,7 +1245,7 @@ class ProtonMail:
             else:
                 prepared_body = self._prepare_message(message, is_html)
 
-            body_message, session_key, signature = self.pgp.encrypt_with_session_key(prepared_body, session_key)
+            body_message, session_key, signature = self.pgp.encrypt_with_session_key(prepared_body, session_key, sender_public_key=sender_public_key)
 
             package_type = package_types[recipient_type]
             fields.update({

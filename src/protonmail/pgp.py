@@ -76,10 +76,17 @@ class PGP:
 
         return aes256_key
 
-    def encrypt_session_key(self, session_key: bytes, public_key: Optional[Union[str, PGPKey]] = None) -> bytes:
+    def encrypt_session_key(self, session_key: bytes, public_key: Optional[Union[str, PGPKey]] = None, sender_public_key: Optional[str] = None) -> bytes:
         """Encrypt session key."""
         if not public_key:
-            public_key = self._get_pair_keys(is_primary=True).public_key
+            if sender_public_key:
+                # Try to find the pair for the sender key
+                for pair in self.pairs_keys:
+                    if pair.public_key == sender_public_key:
+                        public_key = sender_public_key
+                        break
+            if not public_key:
+                public_key = self._get_pair_keys(is_primary=True).public_key
         if isinstance(public_key, str):
             public_key, _ = self.key(public_key)
 
@@ -89,14 +96,26 @@ class PGP:
 
         return encrypted_session_key
 
-    def encrypt_with_session_key(self, message: str, session_key: Optional[bytes] = None) -> tuple[bytes, bytes, bytes]:
+    def encrypt_with_session_key(self, message: str, session_key: Optional[bytes] = None, sender_public_key: Optional[str] = None) -> tuple[bytes, bytes, bytes]:
         """Encrypt message with session key"""
         if not session_key:
             session_key = os.urandom(32)
 
         pgp_message = self.create_message(message)
 
-        pair_keys = self._get_pair_keys(is_primary=True)
+        # If a specific sender key is provided, find the matching pair
+        if sender_public_key:
+            pair_keys = None
+            for pair in self.pairs_keys:
+                if pair.public_key == sender_public_key:
+                    pair_keys = pair
+                    break
+            if not pair_keys:
+                # Fallback to primary if we can't find the specific key
+                pair_keys = self._get_pair_keys(is_primary=True)
+        else:
+            pair_keys = self._get_pair_keys(is_primary=True)
+        
         pgp_private_key, _ = self.key(pair_keys.private_key)
         with pgp_private_key.unlock(pair_keys.passphrase) as key:
             pgp_message |= key.sign(pgp_message)
