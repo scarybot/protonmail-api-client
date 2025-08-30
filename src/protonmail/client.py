@@ -1123,8 +1123,6 @@ class ProtonMail:
         }
         response = await client.get(f"{urls_api['mail']}/mail/v4/messages", params=params, proxy=self.proxy, verify_ssl=False)
         messages = await response.json()
-        from pprint import pprint
-        pprint(messages)
         return messages['Messages']
 
     async def _async_get_conversations(
